@@ -114,3 +114,64 @@ console.table(cleanData);
 console.warn(`以下 ${invalidData.length} 条非法记录已被忽略，不参与统计：`);
 console.table(invalidData);
 showMessage(`数据清洗完成：合法 ${cleanData.length} 条，已忽略非法记录 ${invalidData.length} 条`);
+
+// ============================================================
+// 第三步：统计与格式化报告（综合使用 filter / reduce / map）
+// ============================================================
+
+// 金额统一格式化为两位小数
+const money = (n) => n.toFixed(2);
+
+// 按类型求总额：filter 筛出指定类型，再用 reduce 求和
+const sumByType = (list, type) =>
+  list
+    .filter((r) => r.type === type)
+    .reduce((sum, r) => sum + r.amount, 0);
+
+// 支出分类汇总：filter 选支出 → reduce 按分类累加 → map 转为排行数组并按金额降序
+const categoryExpense = (list) => {
+  const totals = list
+    .filter((r) => r.type === '支出')
+    .reduce((acc, r) => {
+      acc[r.category] = (acc[r.category] || 0) + r.amount;
+      return acc;
+    }, {});
+  return Object.keys(totals)
+    .map((category) => ({ category, amount: totals[category] }))
+    .sort((a, b) => b.amount - a.amount);
+};
+
+// 大额支出清单：filter 按阈值筛选，再用 map 转成易读文本
+const bigExpenses = (list, threshold = 100) =>
+  list
+    .filter((r) => r.type === '支出' && r.amount >= threshold)
+    .map((r) => `· ${r.category} ${money(r.amount)}元（${r.note}）`);
+
+// 生成完整格式化报告；空数组走防御分支，避免后续统计出现异常
+const formatReport = (list) => {
+  if (!Array.isArray(list) || list.length === 0) {
+    return '没有有效账目，无法生成报告';
+  }
+  const income = sumByType(list, '收入');
+  const expense = sumByType(list, '支出');
+  const ranking = categoryExpense(list);
+  const bigs = bigExpenses(list);
+  return [
+    '========== 消费记账报告 ==========',
+    `有效账目 ${list.length} 笔`,
+    `总收入：${money(income)} 元`,
+    `总支出：${money(expense)} 元`,
+    `结余：${money(income - expense)} 元`,
+    '支出分类排行：',
+    ...ranking.map((r, i) => `  ${i + 1}. ${r.category}：${money(r.amount)} 元`),
+    `大额支出（≥100元）：${bigs.length === 0 ? '无' : ''}`,
+    ...bigs
+  ].join('\n');
+};
+
+// 输出报告：Console 与页面 <pre> 各一份，方便核对与截图
+const reportText = formatReport(cleanData);
+console.log(reportText);
+if (typeof document !== 'undefined') {
+  document.getElementById('report').textContent = reportText;
+}
