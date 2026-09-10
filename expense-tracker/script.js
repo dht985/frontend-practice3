@@ -90,7 +90,7 @@ if (typeof window !== 'undefined' && typeof window.prompt === 'function') {
     '请录入一笔账，格式：类型 金额 分类 备注\n类型只能填「收入」或「支出」，例如：支出 28.5 餐饮 午餐\n留空或取消则跳过：',
     '支出 28.5 餐饮 午餐'
   );
-  if (rawInput !== null && inputNotBlank(rawInput)) {
+  if (rawInput !== null && rawInput.trim() !== '') {
     const result = parseRecord(rawInput);
     if (result.ok) {
       ledger.push(result.record);
@@ -102,9 +102,6 @@ if (typeof window !== 'undefined' && typeof window.prompt === 'function') {
     }
   }
 }
-
-// 录入文本非空判断（取消/全空格视为跳过）
-const inputNotBlank = (text) => text.trim() !== '';
 
 // 执行清洗并打印两组结果
 const { valid: cleanData, invalid: invalidData } = partitionLedger(ledger);
